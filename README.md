@@ -3,6 +3,9 @@
 > **"Your Everyday Digital Companion"**  
 > *A patient, accessible, trustworthy GenAI-powered web companion built for senior citizens to navigate digital life with ease, confidence, and independence.*
 
+- **Live Application:** [https://saathi-ai-companion-nu.vercel.app](https://saathi-ai-companion-nu.vercel.app)
+- **GitHub Repository:** [https://github.com/Ronit119/saathi](https://github.com/Ronit119/saathi)
+
 ---
 
 ## 1. Product Overview
