@@ -13,7 +13,7 @@ import { ReminderForm } from '@/components/reminders/ReminderForm';
 import { ReminderItem } from '@/components/reminders/ReminderItem';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { Bell, CheckCircle2, Clock, Calendar } from 'lucide-react';
+import { Bell, CheckCircle2, Clock } from 'lucide-react';
 
 export default function RemindersPage() {
   const { uid, isLoaded } = useAuth();

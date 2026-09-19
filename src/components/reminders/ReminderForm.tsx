@@ -1,13 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { parseReminderInput, ParsedReminderResult } from '@/lib/dates/parseReminder';
+import React, { useState, useMemo } from 'react';
+import { parseReminderInput } from '@/lib/dates/parseReminder';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import {
   Bell,
-  Calendar,
   Clock,
   Sparkles,
   CheckCircle2,
@@ -34,21 +33,16 @@ const EXAMPLE_REMINDERS = [
 
 export function ReminderForm({ onSave, isLoading = false }: ReminderFormProps) {
   const [input, setInput] = useState('');
-  const [parsed, setParsed] = useState<ParsedReminderResult | null>(null);
   const [showManualDate, setShowManualDate] = useState(false);
   const [manualDate, setManualDate] = useState('');
   const [manualTime, setManualTime] = useState('09:00');
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Parse deterministically whenever input changes
-  useEffect(() => {
-    if (!input.trim()) {
-      setParsed(null);
-      setFormError(null);
-      return;
-    }
-    const res = parseReminderInput(input);
-    setParsed(res);
+  // Derive parsed reminder result deterministically without setState in effect
+  const parsed = useMemo(() => {
+    const trimmed = input.trim();
+    if (!trimmed) return null;
+    return parseReminderInput(trimmed);
   }, [input]);
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -97,7 +91,6 @@ export function ReminderForm({ onSave, isLoading = false }: ReminderFormProps) {
         dueDateString: finalDateString,
       });
       setInput('');
-      setParsed(null);
       setShowManualDate(false);
     } catch (err: unknown) {
       console.error('Error saving reminder:', err);

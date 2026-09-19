@@ -69,20 +69,6 @@ export function StepViewer({
     }
   };
 
-  const handleNext = async () => {
-    if (guide.currentStepIndex < totalSteps - 1) {
-      setWriteError(null);
-      setIsUpdating(true);
-      try {
-        await onStepChange(guide.currentStepIndex + 1);
-      } catch (err: unknown) {
-        console.error('Failed to change step:', err);
-        setWriteError('Could not change step. Please try again.');
-      } finally {
-        setIsUpdating(false);
-      }
-    }
-  };
 
   const openHelp = (defaultPrompt: string) => {
     setInitialHelpQuestion(defaultPrompt);

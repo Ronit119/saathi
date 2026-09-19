@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { formatRelativeDay } from '@/lib/utils';
-import { Check, Clock, Trash2, Calendar } from 'lucide-react';
+import { Check, Trash2, Calendar } from 'lucide-react';
 
 export interface ReminderItemProps {
   reminder: Reminder;
@@ -23,6 +23,7 @@ export function ReminderItem({
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [currentTimestamp] = useState(() => Date.now());
 
   const handleCheck = async () => {
     setIsUpdating(true);
@@ -43,7 +44,7 @@ export function ReminderItem({
     }
   };
 
-  const isPast = reminder.dueTimestamp < Date.now() && !reminder.completed;
+  const isPast = reminder.dueTimestamp < currentTimestamp && !reminder.completed;
 
   return (
     <>

@@ -31,18 +31,36 @@ const AccessibilityContext = createContext<AccessibilityContextValue>({
   stopSpeaking: () => {},
 });
 
+function applyDOMPreferences(prefs: UserPreferences) {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+
+  // Text size classes
+  root.classList.remove('text-size-normal', 'text-size-large', 'text-size-xlarge');
+  root.classList.add(`text-size-${prefs.textSize}`);
+
+  // High contrast class
+  if (prefs.highContrast) {
+    root.classList.add('high-contrast');
+  } else {
+    root.classList.remove('high-contrast');
+  }
+
+  // Reduced motion class
+  if (prefs.reducedMotion) {
+    root.classList.add('reduced-motion');
+  } else {
+    root.classList.remove('reduced-motion');
+  }
+}
+
 export function AccessibilityProvider({ children }: { children: React.ReactNode }) {
   const { uid, isLoaded } = useAuth();
   const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_PREFERENCES);
-  const [isSpeechSupported, setIsSpeechSupported] = useState(false);
+  const [isSpeechSupported] = useState<boolean>(() => {
+    return typeof window !== 'undefined' && 'speechSynthesis' in window;
+  });
   const [isSpeaking, setIsSpeaking] = useState(false);
-
-  // Check speech synthesis support
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      setIsSpeechSupported(true);
-    }
-  }, []);
 
   // Load preferences once user ID is ready
   useEffect(() => {
@@ -60,29 +78,6 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
       isMounted = false;
     };
   }, [uid, isLoaded]);
-
-  const applyDOMPreferences = (prefs: UserPreferences) => {
-    if (typeof document === 'undefined') return;
-    const root = document.documentElement;
-
-    // Text size classes
-    root.classList.remove('text-size-normal', 'text-size-large', 'text-size-xlarge');
-    root.classList.add(`text-size-${prefs.textSize}`);
-
-    // High contrast class
-    if (prefs.highContrast) {
-      root.classList.add('high-contrast');
-    } else {
-      root.classList.remove('high-contrast');
-    }
-
-    // Reduced motion class
-    if (prefs.reducedMotion) {
-      root.classList.add('reduced-motion');
-    } else {
-      root.classList.remove('reduced-motion');
-    }
-  };
 
   const updatePreferences = useCallback(
     async (newPrefs: UserPreferences) => {

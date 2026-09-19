@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useTransition, Suspense } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/features/auth/context';
 import { getGuides, saveGuide } from '@/features/persistence/guides';
@@ -33,7 +33,7 @@ function GuidesContent() {
   const { uid, isLoaded } = useAuth();
 
   const [guides, setGuides] = useState<Guide[]>([]);
-  const [goal, setGoal] = useState('');
+  const [goal, setGoal] = useState(() => searchParams.get('create') || '');
   const [isLoadingGuides, setIsLoadingGuides] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -54,14 +54,6 @@ function GuidesContent() {
       isMounted = false;
     };
   }, [uid, isLoaded]);
-
-  // Handle auto-population from query param (e.g. redirected from Ask page)
-  useEffect(() => {
-    const createParam = searchParams.get('create');
-    if (createParam) {
-      setGoal(createParam);
-    }
-  }, [searchParams]);
 
   const handleCreateGuide = async (goalText?: string) => {
     const targetGoal = (goalText !== undefined ? goalText : goal).trim();
