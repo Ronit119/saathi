@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/context';
+import { useLanguage } from '@/i18n/context';
 import {
   getGuideById,
   completeStep,
@@ -21,6 +22,7 @@ export default function GuideDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { uid, isLoaded } = useAuth();
+  const { t } = useLanguage();
   const guideId = params.guideId as string;
 
   const [guide, setGuide] = useState<Guide | null>(null);
@@ -91,7 +93,7 @@ export default function GuideDetailPage() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3">
-        <p className="text-xl font-bold text-stone-700">Loading your task guide…</p>
+        <p className="text-xl font-bold text-stone-700">{t('common.loading')}</p>
       </div>
     );
   }
@@ -105,7 +107,7 @@ export default function GuideDetailPage() {
           {error || 'This guide does not exist or may have been removed.'}
         </p>
         <Button variant="primary" size="default" onClick={() => router.push('/guides')}>
-          Back to Guides
+          {t('guides.detail.allGuides')}
         </Button>
       </Card>
     );
@@ -121,7 +123,7 @@ export default function GuideDetailPage() {
           onClick={() => router.push('/guides')}
           leftIcon={<ArrowLeft className="w-5 h-5" />}
         >
-          All Guides
+          {t('guides.detail.allGuides')}
         </Button>
 
         <Button
@@ -131,7 +133,7 @@ export default function GuideDetailPage() {
           leftIcon={<Trash2 className="w-5 h-5 text-rose-600" />}
           className="text-rose-700 hover:bg-rose-50"
         >
-          Delete Task
+          {t('guides.detail.deleteTask')}
         </Button>
       </div>
 
@@ -147,8 +149,8 @@ export default function GuideDetailPage() {
       <Modal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        title="Delete this task?"
-        description="Are you sure you want to remove this guided task? You can always create it again whenever you like."
+        title={t('guides.detail.deleteConfirmTitle')}
+        description={t('guides.detail.deleteConfirmDesc')}
       >
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-stone-200">
           <Button
@@ -157,7 +159,7 @@ export default function GuideDetailPage() {
             onClick={() => setIsDeleteModalOpen(false)}
             disabled={isDeleting}
           >
-            Keep Task
+            {t('guides.detail.keepTask')}
           </Button>
           <Button
             variant="danger"
@@ -165,7 +167,7 @@ export default function GuideDetailPage() {
             onClick={handleDelete}
             isLoading={isDeleting}
           >
-            {isDeleting ? 'Deleting…' : 'Yes, Delete Task'}
+            {isDeleting ? t('common.loading') : t('guides.detail.confirmDelete')}
           </Button>
         </div>
       </Modal>

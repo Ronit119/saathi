@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/features/auth/context';
+import { useLanguage } from '@/i18n/context';
 import {
   getReminders,
   saveReminder,
@@ -17,6 +18,8 @@ import { Bell, CheckCircle2, Clock } from 'lucide-react';
 
 export default function RemindersPage() {
   const { uid, isLoaded } = useAuth();
+  const { t } = useLanguage();
+
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -97,10 +100,10 @@ export default function RemindersPage() {
           </div>
           <div>
             <h1 className="text-3xl sm:text-4xl font-black text-stone-900 tracking-tight">
-              Reminders
+              {t('reminders.title')}
             </h1>
             <p className="text-lg sm:text-xl text-stone-600">
-              Never forget bills, appointments, or important personal tasks.
+              {t('reminders.subtitle')}
             </p>
           </div>
         </div>
@@ -113,21 +116,21 @@ export default function RemindersPage() {
       <div className="flex flex-col gap-4">
         <h2 className="text-2xl font-bold text-stone-900 flex items-center gap-2">
           <Clock className="w-6 h-6 text-amber-700" />
-          <span>Upcoming Reminders</span>
+          <span>{t('reminders.upcoming')}</span>
           {upcomingReminders.length > 0 && (
             <Badge variant="warning">{upcomingReminders.length}</Badge>
           )}
         </h2>
 
         {isLoading ? (
-          <p className="text-lg text-stone-600">Loading your reminders…</p>
+          <p className="text-lg text-stone-600">{t('common.loading')}</p>
         ) : upcomingReminders.length === 0 ? (
           <Card variant="subtle" className="text-center p-8 border-dashed border-2">
             <p className="text-xl font-bold text-stone-700 mb-2">
-              Nothing you need to remember right now.
+              {t('reminders.emptyTitle')}
             </p>
             <p className="text-base text-stone-500 max-w-md mx-auto">
-              Use the form above to add a reminder, like paying an electricity bill or taking medicine.
+              {t('reminders.emptyDesc')}
             </p>
           </Card>
         ) : (
@@ -149,7 +152,7 @@ export default function RemindersPage() {
         <div className="flex flex-col gap-4 pt-4 border-t border-stone-200">
           <h2 className="text-2xl font-bold text-stone-900 flex items-center gap-2">
             <CheckCircle2 className="w-6 h-6 text-emerald-700" />
-            <span>Completed Reminders</span>
+            <span>{t('reminders.completed')}</span>
             <Badge variant="success">{completedReminders.length}</Badge>
           </h2>
 

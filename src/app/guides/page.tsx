@@ -3,12 +3,14 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/features/auth/context';
+import { useLanguage } from '@/i18n/context';
 import { getGuides, saveGuide } from '@/features/persistence/guides';
 import { Guide, GuideStep } from '@/types/guide';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
+import { VoiceCompanionModal } from '@/components/voice/VoiceCompanionModal';
 import {
   ListOrdered,
   Plus,
@@ -18,25 +20,21 @@ import {
   AlertCircle,
   Clock,
   ArrowRight,
+  Mic,
 } from 'lucide-react';
-
-const SUGGESTED_GUIDES = [
-  'How to change my Gmail password',
-  'How to connect my phone to Wi-Fi',
-  'How to make text bigger on my phone',
-  'How to delete unused apps',
-];
 
 function GuidesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { uid, isLoaded } = useAuth();
+  const { t, resolveResponseLanguage } = useLanguage();
 
   const [guides, setGuides] = useState<Guide[]>([]);
   const [goal, setGoal] = useState(() => searchParams.get('create') || '');
   const [isLoadingGuides, setIsLoadingGuides] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
 
   // Load existing guides
   useEffect(() => {
@@ -55,10 +53,17 @@ function GuidesContent() {
     };
   }, [uid, isLoaded]);
 
+  const commonTasks = [
+    'How to change my Gmail password',
+    'How to connect phone to Wi-Fi',
+    'How to make text bigger on phone',
+    'How to delete an unused app',
+  ];
+
   const handleCreateGuide = async (goalText?: string) => {
     const targetGoal = (goalText !== undefined ? goalText : goal).trim();
     if (!targetGoal) {
-      setCreateError('Please enter what you would like to do.');
+      setCreateError(t('guides.placeholder'));
       return;
     }
 
@@ -70,17 +75,22 @@ function GuidesContent() {
     setCreateError(null);
     setIsCreating(true);
 
+    const targetLang = resolveResponseLanguage(targetGoal);
+
     try {
       const res = await fetch('/api/assistant/guide', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ goal: targetGoal }),
+        body: JSON.stringify({
+          goal: targetGoal,
+          responseLanguage: targetLang,
+        }),
       });
 
       const json = await res.json();
       if (!res.ok || json.error) {
         setCreateError(
-          json.error || 'I could not generate this guide right now. Please check your connection and try again.'
+          json.error || t('common.errorConnection')
         );
         return;
       }
@@ -106,18 +116,16 @@ function GuidesContent() {
         status: 'active',
         currentStepIndex: 0,
         steps,
+        language: targetLang,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
 
-      // Real persistence write
       await saveGuide(uid, newGuide);
-
-      // Navigate to active guide viewer
       router.push(`/guides/${guideId}`);
     } catch (err: unknown) {
       console.error('Error creating guide:', err);
-      setCreateError('Could not reach Saathi. Please check your connection.');
+      setCreateError(t('common.errorConnection'));
     } finally {
       setIsCreating(false);
     }
@@ -131,15 +139,15 @@ function GuidesContent() {
       {/* Page Title */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-900 border border-amber-300 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-teal-100 text-teal-900 border border-teal-300 flex items-center justify-center shrink-0">
             <ListOrdered className="w-7 h-7" aria-hidden="true" />
           </div>
           <div>
             <h1 className="text-3xl sm:text-4xl font-black text-stone-900 tracking-tight">
-              Guided Tasks
+              {t('guides.title')}
             </h1>
             <p className="text-lg sm:text-xl text-stone-600">
-              Saathi guides you step-by-step through any online task at your own pace.
+              {t('guides.subtitle')}
             </p>
           </div>
         </div>
@@ -149,23 +157,34 @@ function GuidesContent() {
       <Card className="border-2 border-stone-300 flex flex-col gap-4">
         <div className="flex flex-col gap-1">
           <h2 className="text-2xl font-bold text-stone-900">
-            Start a New Step-by-Step Guide
+            {t('guides.newTitle')}
           </h2>
           <p className="text-base text-stone-600">
-            Tell Saathi what you want to achieve, and Saathi will break it down into easy steps.
+            {t('guides.newDesc')}
           </p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
             <Input
-              placeholder="e.g. Help me change my Gmail password"
+              placeholder={t('guides.placeholder')}
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
               disabled={isCreating}
-              aria-label="What would you like to accomplish?"
+              aria-label={t('guides.newTitle')}
             />
           </div>
+
+          <Button
+            variant="outline"
+            size="large"
+            onClick={() => setIsVoiceModalOpen(true)}
+            leftIcon={<Mic className="w-5 h-5 text-amber-700" />}
+            title={t('voice.tapToSpeak')}
+          >
+            Voice
+          </Button>
+
           <Button
             variant="primary"
             size="large"
@@ -174,7 +193,7 @@ function GuidesContent() {
             disabled={isCreating || !goal.trim()}
             leftIcon={<Plus className="w-6 h-6" />}
           >
-            {isCreating ? 'Creating Guide…' : 'Create Guide'}
+            {isCreating ? t('guides.creatingCta') : t('guides.createCta')}
           </Button>
         </div>
 
@@ -185,15 +204,14 @@ function GuidesContent() {
           >
             <AlertCircle className="w-6 h-6 text-rose-700 shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="font-bold text-lg">Unable to create guide</p>
-              <p className="text-base">{createError}</p>
+              <p className="text-base font-bold">{createError}</p>
             </div>
             <Button
               variant="outline"
               size="small"
               onClick={() => handleCreateGuide()}
             >
-              Try again
+              {t('common.retry')}
             </Button>
           </div>
         )}
@@ -202,10 +220,10 @@ function GuidesContent() {
         <div className="flex flex-col gap-2 pt-2 border-t border-stone-200">
           <span className="text-sm sm:text-base font-bold text-stone-600 flex items-center gap-1.5">
             <Sparkles className="w-4 h-4 text-amber-700" />
-            Common tasks to try:
+            {t('guides.commonTasks')}
           </span>
           <div className="flex flex-wrap gap-2">
-            {SUGGESTED_GUIDES.map((sug, idx) => (
+            {commonTasks.map((sug, idx) => (
               <button
                 key={idx}
                 type="button"
@@ -226,21 +244,21 @@ function GuidesContent() {
       <div className="flex flex-col gap-4">
         <h2 className="text-2xl font-bold text-stone-900 flex items-center gap-2">
           <Clock className="w-6 h-6 text-amber-700" />
-          <span>Active Guides</span>
+          <span>{t('guides.activeTitle')}</span>
           {activeGuides.length > 0 && (
             <Badge variant="warning">{activeGuides.length}</Badge>
           )}
         </h2>
 
         {isLoadingGuides ? (
-          <p className="text-lg text-stone-600">Loading your guides…</p>
+          <p className="text-lg text-stone-600">{t('common.loading')}</p>
         ) : activeGuides.length === 0 ? (
           <Card variant="subtle" className="text-center p-8 border-dashed border-2">
             <p className="text-xl font-bold text-stone-700 mb-2">
-              No active tasks right now
+              {t('guides.noActiveTitle')}
             </p>
             <p className="text-base text-stone-500 max-w-md mx-auto">
-              When you need help doing something online, Saathi can guide you one step at a time.
+              {t('guides.noActiveDesc')}
             </p>
           </Card>
         ) : (
@@ -256,17 +274,17 @@ function GuidesContent() {
                   <div className="flex flex-col gap-1.5 flex-1">
                     <div className="flex items-center gap-2">
                       <Badge variant="warning">
-                        Step {currentStep} of {total}
+                        {t('guides.stepOf', { current: currentStep, total })}
                       </Badge>
-                      <span className="text-sm text-stone-500">
-                        {Math.round((currentStep / total) * 100)}% done
+                      <span className="text-sm text-stone-500 font-medium">
+                        {t('guides.percentDone', { percent: Math.round((currentStep / total) * 100) })}
                       </span>
                     </div>
                     <h3 className="text-xl sm:text-2xl font-bold text-stone-900">
                       {guide.title}
                     </h3>
                     <p className="text-base text-stone-600">
-                      Current: {guide.steps[guide.currentStepIndex]?.title}
+                      {guide.steps[guide.currentStepIndex]?.title}
                     </p>
                   </div>
 
@@ -277,7 +295,7 @@ function GuidesContent() {
                     rightIcon={<Play className="w-5 h-5" />}
                     className="w-full sm:w-auto"
                   >
-                    Continue Step {currentStep}
+                    {t('guides.continueStep', { step: currentStep })}
                   </Button>
                 </Card>
               );
@@ -291,7 +309,7 @@ function GuidesContent() {
         <div className="flex flex-col gap-4 pt-4 border-t border-stone-200">
           <h2 className="text-2xl font-bold text-stone-900 flex items-center gap-2">
             <CheckCircle2 className="w-6 h-6 text-emerald-700" />
-            <span>Completed Tasks</span>
+            <span>{t('guides.completedTitle')}</span>
             <Badge variant="success">{completedGuides.length}</Badge>
           </h2>
 
@@ -306,7 +324,7 @@ function GuidesContent() {
                     {guide.title}
                   </h3>
                   <span className="text-sm text-emerald-800 font-semibold flex items-center gap-1">
-                    <CheckCircle2 className="w-4 h-4" /> All {guide.steps.length} steps completed
+                    <CheckCircle2 className="w-4 h-4" /> {t('guides.allCompleted', { count: guide.steps.length })}
                   </span>
                 </div>
 
@@ -316,20 +334,26 @@ function GuidesContent() {
                   onClick={() => router.push(`/guides/${guide.id}`)}
                   rightIcon={<ArrowRight className="w-4 h-4" />}
                 >
-                  Review Guide
+                  {t('guides.reviewGuide')}
                 </Button>
               </Card>
             ))}
           </div>
         </div>
       )}
+
+      {/* Voice Companion Modal */}
+      <VoiceCompanionModal
+        isOpen={isVoiceModalOpen}
+        onClose={() => setIsVoiceModalOpen(false)}
+      />
     </div>
   );
 }
 
 export default function GuidesPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-xl text-stone-600">Loading guides…</div>}>
+    <Suspense fallback={<div className="p-8 text-xl text-stone-600">Loading…</div>}>
       <GuidesContent />
     </Suspense>
   );

@@ -1,16 +1,35 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Noto+Sans+Gujarati:wght@400;500;600;700&family=Noto+Sans+Gurmukhi:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&family=Noto+Sans:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 :root {
-  --bg-main: #fcfbf9;
+  /* Warm senior-friendly palette: warm ivory base, calm teal primary, warm marigold accent */
+  --bg-main: #fbf9f5;
   --bg-card: #ffffff;
-  --text-main: #1c1917;
-  --text-muted: #57534e;
-  --border-subtle: #e7e5e4;
-  --border-strong: #a8a29e;
-  --primary-accent: #d97706;
-  --primary-hover: #b45309;
-  --primary-bg: #fef3c7;
-  --focus-ring: #b45309;
+  --bg-card-subtle: #f7f3ec;
+  --text-main: #131b26;
+  --text-muted: #4b5563;
+  --text-secondary: #374151;
+  --border-subtle: #e5e0d8;
+  --border-medium: #c7beaf;
+  --border-strong: #968975;
+  
+  --primary: #0f766e;
+  --primary-hover: #0d5f58;
+  --primary-subtle: #f0fdfa;
+  --primary-border: #99f6e4;
+  
+  --accent-amber: #c25e00;
+  --accent-amber-hover: #9e4c00;
+  --accent-amber-subtle: #fff7ed;
+  
+  --success: #15803d;
+  --success-subtle: #f0fdf4;
+  --warning: #b45309;
+  --warning-subtle: #fffbeb;
+  --danger: #be123c;
+  --danger-subtle: #fff1f2;
+
+  --focus-ring: #0f766e;
 
   /* Font scale: baseline 18px for senior readability */
   --base-font-size: 18px;
@@ -34,13 +53,18 @@ html.text-size-xlarge {
 html.high-contrast {
   --bg-main: #000000;
   --bg-card: #121212;
+  --bg-card-subtle: #1c1c1c;
   --text-main: #ffffff;
-  --text-muted: #e5e5e5;
+  --text-muted: #f3f4f6;
+  --text-secondary: #e5e7eb;
   --border-subtle: #ffffff;
+  --border-medium: #fbbf24;
   --border-strong: #fbbf24;
-  --primary-accent: #fbbf24;
+  --primary: #fbbf24;
   --primary-hover: #f59e0b;
-  --primary-bg: #292524;
+  --primary-subtle: #292524;
+  --primary-border: #fbbf24;
+  --accent-amber: #fde047;
   --focus-ring: #fde047;
 }
 
@@ -62,8 +86,9 @@ html.high-contrast label {
 
 html.high-contrast .text-stone-600,
 html.high-contrast .text-stone-500,
-html.high-contrast .text-stone-700 {
-  color: #e7e5e4 !important;
+html.high-contrast .text-stone-700,
+html.high-contrast .text-stone-800 {
+  color: #f3f4f6 !important;
 }
 
 html.high-contrast .bg-white,
@@ -113,14 +138,34 @@ html.reduced-motion ::after {
   transition: none !important;
 }
 
-/* Global Senior Accessibility Typography & Touch Targets */
+/* Global Senior Accessibility Typography & Touch Targets with Noto Indic fallback stack */
 body {
   background-color: var(--bg-main);
   color: var(--text-main);
   font-size: var(--base-font-size);
   line-height: var(--base-line-height);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  font-family:
+    "Noto Sans",
+    "Noto Sans Devanagari",
+    "Noto Sans Gurmukhi",
+    "Noto Sans Bengali",
+    "Noto Sans Gujarati",
+    "Noto Sans Tamil",
+    "Noto Sans Telugu",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Indic script legibility optimization: prevent vowel diacritic clipping */
+:lang(pa), :lang(hi), :lang(mr), :lang(bn), :lang(gu), :lang(ta), :lang(te) {
+  line-height: 1.75;
 }
 
 /* Visible Focus Indicator */
@@ -139,7 +184,7 @@ textarea {
   touch-action: manipulation;
 }
 
-/* Keyboard Skip Link */
+/* Skip Link */
 .skip-link {
   position: absolute;
   top: -100px;
@@ -155,4 +200,21 @@ textarea {
 
 .skip-link:focus {
   top: 1rem;
+}
+
+/* Gentle Voice Mic Pulse */
+@keyframes mic-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 16px rgba(220, 38, 38, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+  }
+}
+
+.recording-pulse {
+  animation: mic-pulse 1.8s infinite;
 }

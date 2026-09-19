@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/context';
+import { useLanguage } from '@/i18n/context';
+import { formatRelativeLocaleDay } from '@/i18n/formatters';
 import { getReminders } from '@/features/persistence/reminders';
 import { getGuides } from '@/features/persistence/guides';
 import { Reminder } from '@/types/reminder';
@@ -12,11 +14,12 @@ import { ProactiveSuggestionResponse } from '@/types/assistant';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { formatRelativeDay } from '@/lib/utils';
+import { VoiceCompanionModal } from '@/components/voice/VoiceCompanionModal';
 import {
   HelpCircle,
   ListOrdered,
   Bell,
+  ShieldCheck,
   Sparkles,
   ArrowRight,
   Play,
@@ -25,23 +28,30 @@ import {
   Sun,
   Moon,
   Sunset,
+  Mic,
+  Send,
 } from 'lucide-react';
 
 export default function HomePage() {
   const router = useRouter();
   const { uid, isLoaded } = useAuth();
+  const { t, uiLocale } = useLanguage();
 
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [guides, setGuides] = useState<Guide[]>([]);
   const [proactiveSuggestion, setProactiveSuggestion] = useState<ProactiveSuggestionResponse | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
-  // Time of day greeting
+  // Unified composer state
+  const [composerText, setComposerText] = useState('');
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+
+  // Greeting
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return { text: 'Good morning', icon: Sun };
-    if (hour < 17) return { text: 'Good afternoon', icon: Sunset };
-    return { text: 'Good evening', icon: Moon };
+    if (hour < 12) return { text: t('home.greeting.morning'), icon: Sun };
+    if (hour < 17) return { text: t('home.greeting.afternoon'), icon: Sunset };
+    return { text: t('home.greeting.evening'), icon: Moon };
   };
 
   const greeting = getGreeting();
@@ -66,7 +76,6 @@ export default function HomePage() {
         setGuides(loadedGuides);
         setIsLoadingData(false);
 
-        // Filter active items for proactive AI evaluation
         const upcoming = loadedReminders
           .filter((r) => !r.completed)
           .map((r) => ({
@@ -86,7 +95,7 @@ export default function HomePage() {
             currentStepTitle: g.steps[g.currentStepIndex]?.title || 'Active Step',
           }));
 
-        // If there is genuine stored state, ask Gemini for a proactive suggestion
+        // Fetch proactive advice only when real items exist
         if (upcoming.length > 0 || active.length > 0) {
           try {
             const res = await fetch('/api/assistant/proactive', {
@@ -95,6 +104,7 @@ export default function HomePage() {
               body: JSON.stringify({
                 upcomingReminders: upcoming,
                 activeGuides: active,
+                responseLanguage: uiLocale,
               }),
             });
             const json = await res.json();
@@ -116,7 +126,21 @@ export default function HomePage() {
     return () => {
       isMounted = false;
     };
-  }, [uid, isLoaded]);
+  }, [uid, isLoaded, uiLocale]);
+
+  const handleComposerSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const query = composerText.trim();
+    if (!query) return;
+
+    // Check if user is asking to do something / guide
+    const lower = query.toLowerCase();
+    if (/^(help me|how to|guide me|ਕਿਵੇਂ|ਸਿਖਾਓ|सिखाओ|ఎలా|எப்படி)/i.test(lower)) {
+      router.push(`/guides?create=${encodeURIComponent(query)}`);
+    } else {
+      router.push(`/ask?query=${encodeURIComponent(query)}`);
+    }
+  };
 
   const activeGuides = guides.filter((g) => g.status === 'active');
   const upcomingReminders = reminders.filter((r) => !r.completed);
@@ -125,20 +149,54 @@ export default function HomePage() {
   return (
     <div className="flex flex-col gap-8 max-w-4xl mx-auto py-2">
       {/* Warm Greeting & Hero Question */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-2 text-stone-600 font-bold text-xl">
-          <GreetingIcon className="w-6 h-6 text-amber-700" />
-          <span>{greeting.text}, friend.</span>
+      <div className="flex flex-col gap-2.5">
+        <div className="flex items-center gap-2 text-stone-700 font-bold text-lg sm:text-xl">
+          <GreetingIcon className="w-6 h-6 text-amber-700 shrink-0" />
+          <span>{greeting.text}</span>
         </div>
         <h1 className="text-3xl sm:text-5xl font-black text-stone-900 tracking-tight leading-tight">
-          What can I help you with today?
+          {t('home.heroTitle')}
         </h1>
-        <p className="text-lg sm:text-xl text-stone-600">
-          I am Saathi. I can simplify confusing messages, guide you through tasks step-by-step, or remember things for you.
+        <p className="text-lg sm:text-xl text-stone-600 leading-relaxed max-w-2xl">
+          {t('home.heroSubtitle')}
         </p>
       </div>
 
-      {/* Proactive Suggestion Banner (Based ONLY on Real Stored State) */}
+      {/* Primary Companion Input: Unified Composer with Prominent Microphone */}
+      <div className="w-full bg-white rounded-3xl border-2 border-stone-300 p-2 sm:p-3 shadow-md focus-within:border-amber-600 transition-colors">
+        <form onSubmit={handleComposerSubmit} className="flex items-center gap-2">
+          <input
+            type="text"
+            value={composerText}
+            onChange={(e) => setComposerText(e.target.value)}
+            placeholder={t('home.composerPlaceholder')}
+            className="flex-1 text-lg sm:text-xl px-4 py-3 bg-transparent text-stone-900 placeholder:text-stone-400 focus:outline-none min-h-[52px]"
+            aria-label={t('home.composerPlaceholder')}
+          />
+
+          {composerText.trim() ? (
+            <button
+              type="submit"
+              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white flex items-center justify-center shrink-0 shadow-xs transition-transform active:scale-95 cursor-pointer"
+              aria-label={t('ask.submit.explain')}
+            >
+              <Send className="w-6 h-6" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsVoiceModalOpen(true)}
+              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white flex items-center justify-center shrink-0 shadow-xs transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+              aria-label={t('home.micAriaLabel')}
+              title={t('home.micAriaLabel')}
+            >
+              <Mic className="w-7 h-7" />
+            </button>
+          )}
+        </form>
+      </div>
+
+      {/* Proactive Suggestion Banner (Real State Only) */}
       {proactiveSuggestion && proactiveSuggestion.hasSuggestion && (
         <Card
           variant="accent"
@@ -151,7 +209,7 @@ export default function HomePage() {
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-sm font-bold text-amber-900 uppercase">
-                  Saathi&apos;s Suggestion for Today
+                  {t('home.proactive.title')}
                 </span>
                 <p className="text-lg sm:text-xl font-bold text-stone-900">
                   {proactiveSuggestion.message}
@@ -165,7 +223,7 @@ export default function HomePage() {
                 size="default"
                 onClick={() => router.push(proactiveSuggestion.actionUrl!)}
                 rightIcon={<ArrowRight className="w-5 h-5" />}
-                className="shrink-0"
+                className="shrink-0 font-bold"
               >
                 {proactiveSuggestion.actionText || 'Take Action'}
               </Button>
@@ -174,124 +232,154 @@ export default function HomePage() {
         </Card>
       )}
 
-      {/* Primary 3 Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Action 1: Help Me Understand */}
+      {/* Four Primary Human Intent Actions */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* 1. Understand Something */}
         <Link
-          href="/ask"
-          className="p-6 rounded-2xl border-2 border-stone-300 bg-white hover:border-amber-500 hover:bg-amber-50/40 transition-all flex flex-col justify-between gap-4 group focus-visible:outline-none shadow-xs"
+          href="/ask?mode=explain"
+          className="p-5 sm:p-6 rounded-2xl border-2 border-stone-300 bg-white hover:border-amber-500 hover:bg-amber-50/40 transition-all flex flex-col justify-between gap-4 group focus-visible:outline-none shadow-xs"
         >
-          <div className="flex flex-col gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-colors">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 group-hover:bg-amber-600 group-hover:text-white transition-colors">
               <HelpCircle className="w-7 h-7" />
             </div>
-            <h2 className="text-2xl font-bold text-stone-900 group-hover:text-amber-900">
-              Explain Something
-            </h2>
-            <p className="text-base text-stone-600">
-              Understand OTP, 2FA, bill messages, or confusing notifications in plain language.
-            </p>
+            <div className="flex flex-col gap-1">
+              <h2 className="text-xl sm:text-2xl font-bold text-stone-900 group-hover:text-amber-900">
+                {t('home.actions.explainTitle')}
+              </h2>
+              <p className="text-base text-stone-600 leading-relaxed">
+                {t('home.actions.explainDesc')}
+              </p>
+            </div>
           </div>
-          <span className="text-base font-bold text-amber-800 flex items-center gap-1">
-            Ask Saathi <ArrowRight className="w-4 h-4" />
+          <span className="text-base font-bold text-amber-800 flex items-center gap-1 self-end">
+            {t('home.actions.explainCta')} <ArrowRight className="w-4 h-4" />
           </span>
         </Link>
 
-        {/* Action 2: Guided Tasks */}
+        {/* 2. Do Something / Guides */}
         <Link
           href="/guides"
-          className="p-6 rounded-2xl border-2 border-stone-300 bg-white hover:border-amber-500 hover:bg-amber-50/40 transition-all flex flex-col justify-between gap-4 group focus-visible:outline-none shadow-xs"
+          className="p-5 sm:p-6 rounded-2xl border-2 border-stone-300 bg-white hover:border-teal-500 hover:bg-teal-50/40 transition-all flex flex-col justify-between gap-4 group focus-visible:outline-none shadow-xs"
         >
-          <div className="flex flex-col gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-sky-100 text-sky-800 flex items-center justify-center group-hover:bg-sky-600 group-hover:text-white transition-colors">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-teal-100 text-teal-800 flex items-center justify-center shrink-0 group-hover:bg-teal-700 group-hover:text-white transition-colors">
               <ListOrdered className="w-7 h-7" />
             </div>
-            <h2 className="text-2xl font-bold text-stone-900 group-hover:text-sky-900">
-              Help Me Do Something
-            </h2>
-            <p className="text-base text-stone-600">
-              Get an interactive, patient step-by-step guide for any digital task.
-            </p>
+            <div className="flex flex-col gap-1">
+              <h2 className="text-xl sm:text-2xl font-bold text-stone-900 group-hover:text-teal-900">
+                {t('home.actions.guideTitle')}
+              </h2>
+              <p className="text-base text-stone-600 leading-relaxed">
+                {t('home.actions.guideDesc')}
+              </p>
+            </div>
           </div>
-          <span className="text-base font-bold text-sky-800 flex items-center gap-1">
-            Start a guide <ArrowRight className="w-4 h-4" />
+          <span className="text-base font-bold text-teal-800 flex items-center gap-1 self-end">
+            {t('home.actions.guideCta')} <ArrowRight className="w-4 h-4" />
           </span>
         </Link>
 
-        {/* Action 3: Reminders */}
+        {/* 3. Check If Something Is Safe (Scam Checker) */}
+        <Link
+          href="/ask?mode=safety"
+          className="p-5 sm:p-6 rounded-2xl border-2 border-stone-300 bg-white hover:border-emerald-500 hover:bg-emerald-50/40 transition-all flex flex-col justify-between gap-4 group focus-visible:outline-none shadow-xs"
+        >
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 group-hover:bg-emerald-700 group-hover:text-white transition-colors">
+              <ShieldCheck className="w-7 h-7" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <h2 className="text-xl sm:text-2xl font-bold text-stone-900 group-hover:text-emerald-900">
+                {t('home.actions.safetyTitle')}
+              </h2>
+              <p className="text-base text-stone-600 leading-relaxed">
+                {t('home.actions.safetyDesc')}
+              </p>
+            </div>
+          </div>
+          <span className="text-base font-bold text-emerald-800 flex items-center gap-1 self-end">
+            {t('home.actions.safetyCta')} <ArrowRight className="w-4 h-4" />
+          </span>
+        </Link>
+
+        {/* 4. Remember Something / Reminders */}
         <Link
           href="/reminders"
-          className="p-6 rounded-2xl border-2 border-stone-300 bg-white hover:border-amber-500 hover:bg-amber-50/40 transition-all flex flex-col justify-between gap-4 group focus-visible:outline-none shadow-xs"
+          className="p-5 sm:p-6 rounded-2xl border-2 border-stone-300 bg-white hover:border-amber-500 hover:bg-amber-50/40 transition-all flex flex-col justify-between gap-4 group focus-visible:outline-none shadow-xs"
         >
-          <div className="flex flex-col gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 group-hover:bg-amber-600 group-hover:text-white transition-colors">
               <Bell className="w-7 h-7" />
             </div>
-            <h2 className="text-2xl font-bold text-stone-900 group-hover:text-emerald-900">
-              Set a Reminder
-            </h2>
-            <p className="text-base text-stone-600">
-              Tell Saathi in normal words when to remind you about bills or medicine.
-            </p>
+            <div className="flex flex-col gap-1">
+              <h2 className="text-xl sm:text-2xl font-bold text-stone-900 group-hover:text-amber-900">
+                {t('home.actions.reminderTitle')}
+              </h2>
+              <p className="text-base text-stone-600 leading-relaxed">
+                {t('home.actions.reminderDesc')}
+              </p>
+            </div>
           </div>
-          <span className="text-base font-bold text-emerald-800 flex items-center gap-1">
-            View reminders <ArrowRight className="w-4 h-4" />
+          <span className="text-base font-bold text-amber-800 flex items-center gap-1 self-end">
+            {t('home.actions.reminderCta')} <ArrowRight className="w-4 h-4" />
           </span>
         </Link>
       </div>
 
       {/* MY DAY: Real Connected State */}
       <div className="flex flex-col gap-4 pt-4 border-t-2 border-stone-200">
-        <h2 className="text-3xl font-black text-stone-900 flex items-center gap-2.5">
+        <h2 className="text-2xl sm:text-3xl font-black text-stone-900 flex items-center gap-2.5">
           <Calendar className="w-7 h-7 text-amber-700" />
-          <span>My Day</span>
+          <span>{t('home.myDay.title')}</span>
         </h2>
 
         {isLoadingData ? (
-          <p className="text-lg text-stone-600">Checking your day…</p>
+          <p className="text-lg text-stone-600">{t('common.loading')}</p>
         ) : activeGuides.length === 0 && upcomingReminders.length === 0 ? (
-          /* Intentionally designed warm EMPTY STATE */
-          <Card variant="subtle" className="text-center p-8 sm:p-10 border-dashed border-2">
+          /* Calm empty state */
+          <Card variant="subtle" className="text-center p-7 sm:p-10 border-dashed border-2">
             <div className="w-16 h-16 rounded-3xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto mb-3">
               <HeartHandshake className="w-9 h-9" />
             </div>
             <p className="text-2xl font-bold text-stone-800 mb-2">
-              Nothing you need to remember today.
+              {t('home.myDay.emptyTitle')}
             </p>
             <p className="text-lg text-stone-600 max-w-md mx-auto mb-6">
-              You are all caught up! You can ask Saathi to explain a confusing concept, or start a guided task above.
+              {t('home.myDay.emptyDesc')}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               <Button variant="primary" size="default" onClick={() => router.push('/ask')}>
-                Ask Saathi something
+                {t('home.myDay.askCta')}
               </Button>
               <Button variant="outline" size="default" onClick={() => router.push('/reminders')}>
-                Add a reminder
+                {t('home.myDay.reminderCta')}
               </Button>
             </div>
           </Card>
         ) : (
-          /* REAL Stored State Cards */
+          /* Real Connected Cards */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Active Guide Card */}
             {mostRecentActiveGuide ? (
               <Card className="border-2 border-amber-300 bg-amber-50/40 flex flex-col justify-between gap-4">
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-between">
-                    <Badge variant="warning">Active Guide</Badge>
+                    <Badge variant="warning">{t('home.myDay.activeGuide')}</Badge>
                     <span className="text-sm font-bold text-stone-600">
-                      Step {mostRecentActiveGuide.currentStepIndex + 1} of{' '}
-                      {mostRecentActiveGuide.steps.length}
+                      {t('home.myDay.stepOf', {
+                        current: mostRecentActiveGuide.currentStepIndex + 1,
+                        total: mostRecentActiveGuide.steps.length,
+                      })}
                     </span>
                   </div>
                   <h3 className="text-xl sm:text-2xl font-bold text-stone-900">
                     {mostRecentActiveGuide.title}
                   </h3>
                   <p className="text-base text-stone-700">
-                    Next step:{' '}
-                    <strong>
-                      {mostRecentActiveGuide.steps[mostRecentActiveGuide.currentStepIndex]?.title}
-                    </strong>
+                    {t('home.myDay.nextStep', {
+                      title: mostRecentActiveGuide.steps[mostRecentActiveGuide.currentStepIndex]?.title || '',
+                    })}
                   </p>
                 </div>
 
@@ -301,27 +389,19 @@ export default function HomePage() {
                   onClick={() => router.push(`/guides/${mostRecentActiveGuide.id}`)}
                   rightIcon={<Play className="w-5 h-5" />}
                 >
-                  Continue Guide
+                  {t('home.myDay.continueGuide')}
                 </Button>
               </Card>
-            ) : (
-              <Card variant="subtle" className="border-stone-200 flex flex-col justify-center p-6 text-center">
-                <p className="text-lg font-bold text-stone-700">No unfinished tasks</p>
-                <p className="text-base text-stone-500 mb-3">All guided tasks are completed.</p>
-                <Button variant="outline" size="small" onClick={() => router.push('/guides')}>
-                  Start a new guide
-                </Button>
-              </Card>
-            )}
+            ) : null}
 
             {/* Upcoming Reminders Card */}
             {upcomingReminders.length > 0 ? (
               <Card className="border-2 border-emerald-300 bg-emerald-50/30 flex flex-col justify-between gap-4">
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-between">
-                    <Badge variant="success">Upcoming Reminders</Badge>
+                    <Badge variant="success">{t('home.myDay.upcomingReminders')}</Badge>
                     <span className="text-sm font-bold text-stone-600">
-                      {upcomingReminders.length} reminder{upcomingReminders.length > 1 ? 's' : ''}
+                      {upcomingReminders.length}
                     </span>
                   </div>
 
@@ -330,7 +410,7 @@ export default function HomePage() {
                       <li key={r.id} className="flex items-start justify-between gap-2 text-base text-stone-900 border-b border-emerald-200/60 pb-1.5 last:border-none">
                         <span className="font-semibold truncate">{r.title}</span>
                         <span className="text-sm text-stone-600 shrink-0 font-medium">
-                          {formatRelativeDay(r.dueTimestamp)}
+                          {formatRelativeLocaleDay(r.dueTimestamp, uiLocale)}
                         </span>
                       </li>
                     ))}
@@ -343,21 +423,19 @@ export default function HomePage() {
                   onClick={() => router.push('/reminders')}
                   rightIcon={<ArrowRight className="w-5 h-5" />}
                 >
-                  View All Reminders
+                  {t('home.myDay.viewAllReminders')}
                 </Button>
               </Card>
-            ) : (
-              <Card variant="subtle" className="border-stone-200 flex flex-col justify-center p-6 text-center">
-                <p className="text-lg font-bold text-stone-700">No upcoming reminders</p>
-                <p className="text-base text-stone-500 mb-3">You have no scheduled reminders.</p>
-                <Button variant="outline" size="small" onClick={() => router.push('/reminders')}>
-                  Create a reminder
-                </Button>
-              </Card>
-            )}
+            ) : null}
           </div>
         )}
       </div>
+
+      {/* Voice Companion Modal */}
+      <VoiceCompanionModal
+        isOpen={isVoiceModalOpen}
+        onClose={() => setIsVoiceModalOpen(false)}
+      />
     </div>
   );
 }

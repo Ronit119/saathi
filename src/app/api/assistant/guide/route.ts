@@ -7,7 +7,7 @@ import { checkRateLimit } from '@/lib/security/rateLimit';
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown-client';
-    const rateCheck = checkRateLimit(`guide-${ip}`, 15, 60_000);
+    const rateCheck = checkRateLimit(`guide-${ip}`, 20, 60_000);
     if (!rateCheck.success) {
       return NextResponse.json(
         { error: 'You are creating guides quickly. Please take a moment and try again.' },
@@ -22,9 +22,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: firstError }, { status: 400 });
     }
 
-    const { goal, context } = parseResult.data;
-    const prompt = buildGuidePrompt(goal, context);
+    const { goal, context, responseLanguage } = parseResult.data;
+    const targetLang = responseLanguage || 'en-IN';
+
+    const prompt = buildGuidePrompt(goal, context, targetLang);
     const guide = await generateStructuredContent(prompt, GuideResponseSchema);
+    guide.language = targetLang;
 
     return NextResponse.json({ data: guide }, { status: 200 });
   } catch (error: unknown) {

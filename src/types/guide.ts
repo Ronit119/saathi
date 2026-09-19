@@ -1,3 +1,5 @@
+import { SupportedLanguage } from '@/i18n/config';
+
 export interface GuideStep {
   id: string;
   stepNumber: number;
@@ -18,6 +20,7 @@ export interface Guide {
   status: GuideStatus;
   currentStepIndex: number;
   steps: GuideStep[];
+  language?: SupportedLanguage | string;
   createdAt: number;
   updatedAt: number;
 }

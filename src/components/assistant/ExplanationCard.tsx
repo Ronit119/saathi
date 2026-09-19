@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useLanguage } from '@/i18n/context';
 import { ExplanationResponse } from '@/types/assistant';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -25,12 +26,14 @@ export function ExplanationCard({
   onFollowUp,
   onExplainMoreSimply,
 }: ExplanationCardProps) {
+  const { t } = useLanguage();
+
   const fullTextToRead = `
     ${explanation.title}.
-    What this means: ${explanation.meaning}.
-    Why this matters: ${explanation.whyItMatters}.
-    What you can do: ${explanation.nextSteps.join('. ')}.
-    ${explanation.cautions && explanation.cautions.length > 0 ? `Safety caution: ${explanation.cautions.join('. ')}` : ''}
+    ${t('ask.card.meaning')}: ${explanation.meaning}.
+    ${t('ask.card.whyItMatters')}: ${explanation.whyItMatters}.
+    ${t('ask.card.nextSteps')}: ${explanation.nextSteps.join('. ')}.
+    ${explanation.cautions && explanation.cautions.length > 0 ? `${t('ask.card.cautions')}: ${explanation.cautions.join('. ')}` : ''}
   `;
 
   return (
@@ -46,7 +49,7 @@ export function ExplanationCard({
               {explanation.title}
             </h2>
           </div>
-          <SpeechButton textToRead={fullTextToRead} label="Read answer aloud" />
+          <SpeechButton textToRead={fullTextToRead} label={t('ask.card.readAloud')} />
         </div>
       </Card>
 
@@ -54,7 +57,7 @@ export function ExplanationCard({
       <Card className="border-l-8 border-l-amber-600">
         <div className="flex items-center gap-2 mb-2 text-amber-900 font-bold text-lg">
           <Info className="w-6 h-6 text-amber-700" aria-hidden="true" />
-          <span>1. What This Means</span>
+          <span>{t('ask.card.meaning')}</span>
         </div>
         <p className="text-lg sm:text-xl text-stone-800 leading-relaxed font-normal">
           {explanation.meaning}
@@ -65,7 +68,7 @@ export function ExplanationCard({
       <Card className="border-l-8 border-l-sky-600">
         <div className="flex items-center gap-2 mb-2 text-sky-900 font-bold text-lg">
           <Info className="w-6 h-6 text-sky-700" aria-hidden="true" />
-          <span>2. Why This Matters</span>
+          <span>{t('ask.card.whyItMatters')}</span>
         </div>
         <p className="text-lg sm:text-xl text-stone-800 leading-relaxed font-normal">
           {explanation.whyItMatters}
@@ -76,7 +79,7 @@ export function ExplanationCard({
       <Card className="border-l-8 border-l-emerald-600">
         <div className="flex items-center gap-2 mb-3 text-emerald-900 font-bold text-lg">
           <CheckCircle2 className="w-6 h-6 text-emerald-700" aria-hidden="true" />
-          <span>3. What You Can Do</span>
+          <span>{t('ask.card.nextSteps')}</span>
         </div>
         <ul className="flex flex-col gap-3">
           {explanation.nextSteps.map((step, idx) => (
@@ -98,7 +101,7 @@ export function ExplanationCard({
         <Card variant="warning" className="border-2 border-amber-500 bg-amber-50">
           <div className="flex items-center gap-2 mb-3 text-amber-950 font-bold text-lg">
             <AlertTriangle className="w-6 h-6 text-amber-700" aria-hidden="true" />
-            <span>4. Be Careful About (Safety Note)</span>
+            <span>{t('ask.card.cautions')}</span>
           </div>
           <ul className="flex flex-col gap-2">
             {explanation.cautions.map((caution, idx) => (
@@ -117,20 +120,18 @@ export function ExplanationCard({
       {/* 5. Follow-up Actions */}
       <Card className="bg-stone-50 border-stone-300">
         <h3 className="text-xl font-bold text-stone-900 mb-3">
-          What would you like to do next?
+          {t('ask.card.whatNext')}
         </h3>
         <div className="flex flex-wrap gap-3">
-          {/* Primary Action: Guide me through doing this */}
           <Button
             variant="primary"
             size="default"
             onClick={() => onFollowUp?.(`Help me do this: ${explanation.title}`)}
             leftIcon={<ArrowRight className="w-5 h-5" />}
           >
-            Help me do this step-by-step
+            {t('ask.card.guideMeStepByStep')}
           </Button>
 
-          {/* Explain simpler option */}
           {onExplainMoreSimply && (
             <Button
               variant="outline"
@@ -138,11 +139,10 @@ export function ExplanationCard({
               onClick={onExplainMoreSimply}
               leftIcon={<RefreshCw className="w-5 h-5 text-stone-700" />}
             >
-              Explain even more simply
+              {t('ask.card.explainSimpler')}
             </Button>
           )}
 
-          {/* Additional follow-ups suggested by AI */}
           {explanation.followUps.map((action, idx) => (
             <Button
               key={idx}

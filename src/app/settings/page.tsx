@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import { useLanguage } from '@/i18n/context';
+import { SUPPORTED_LANGUAGES, SupportedLanguage } from '@/i18n/config';
 import { useAccessibility } from '@/features/accessibility/context';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -12,10 +14,12 @@ import {
   Activity,
   BookOpen,
   Volume2,
+  Globe,
   Check,
 } from 'lucide-react';
 
 export default function SettingsPage() {
+  const { uiLocale, setUiLocale, responseLocale, setResponseLocale, t } = useLanguage();
   const {
     preferences,
     isSpeechSupported,
@@ -27,9 +31,9 @@ export default function SettingsPage() {
   } = useAccessibility();
 
   const textSizes: { key: TextSizePreference; label: string; desc: string }[] = [
-    { key: 'normal', label: 'Normal (18px)', desc: 'Comfortable standard size for easy reading' },
-    { key: 'large', label: 'Large (21px)', desc: 'Larger text for enhanced visibility' },
-    { key: 'xlarge', label: 'Extra Large (24px)', desc: 'Maximum text size for highest clarity' },
+    { key: 'normal', label: t('a11y.textSize.normal'), desc: 'Comfortable standard size for easy reading' },
+    { key: 'large', label: t('a11y.textSize.large'), desc: 'Larger text for enhanced visibility' },
+    { key: 'xlarge', label: t('a11y.textSize.xlarge'), desc: 'Maximum text size for highest clarity' },
   ];
 
   const levels: { key: ExplanationLevel; label: string; desc: string }[] = [
@@ -48,20 +52,78 @@ export default function SettingsPage() {
           </div>
           <div>
             <h1 className="text-3xl sm:text-4xl font-black text-stone-900 tracking-tight">
-              Accessibility &amp; Display Settings
+              {t('nav.settings')}
             </h1>
             <p className="text-lg sm:text-xl text-stone-600">
-              Customize Saathi so everything is easy to read, see, and use.
+              {t('a11y.quickTitle')}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Text Size Setting */}
+      {/* 1. Language Settings */}
+      <Card className="border-2 border-stone-300 flex flex-col gap-5">
+        <div className="flex items-center gap-2">
+          <Globe className="w-6 h-6 text-teal-700" />
+          <h2 className="text-2xl font-bold text-stone-900">{t('a11y.language')}</h2>
+        </div>
+        <p className="text-base text-stone-600">
+          Choose the language for Saathi&apos;s menus, buttons, and display.
+        </p>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {Object.values(SUPPORTED_LANGUAGES).map((lang) => {
+            const isSelected = uiLocale === lang.code;
+            return (
+              <button
+                key={lang.code}
+                type="button"
+                onClick={() => setUiLocale(lang.code)}
+                className={`p-3.5 rounded-2xl border-2 text-left flex flex-col justify-between transition-all cursor-pointer min-h-[85px] focus-visible:outline-none ${
+                  isSelected
+                    ? 'border-teal-700 bg-teal-50 shadow-xs'
+                    : 'border-stone-300 bg-white hover:border-teal-400'
+                }`}
+              >
+                <div className="flex items-center justify-between w-full mb-1">
+                  <span className="text-xl font-bold text-stone-900 leading-tight">
+                    {lang.nativeName}
+                  </span>
+                  {isSelected && (
+                    <Check className="w-5 h-5 text-teal-700 stroke-[3]" />
+                  )}
+                </div>
+                <span className="text-xs text-stone-500 font-medium">{lang.name}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Reply Language Mode */}
+        <div className="pt-3 border-t border-stone-200 flex flex-col gap-2">
+          <label className="text-base font-bold text-stone-900">
+            {t('a11y.responseLanguage')}
+          </label>
+          <select
+            value={responseLocale}
+            onChange={(e) => setResponseLocale(e.target.value as 'auto' | SupportedLanguage)}
+            className="w-full max-w-md p-3 rounded-xl border-2 border-stone-300 bg-white text-base font-medium text-stone-900 focus:border-amber-600 focus:outline-none"
+          >
+            <option value="auto">{t('a11y.autoReply')}</option>
+            {Object.values(SUPPORTED_LANGUAGES).map((l) => (
+              <option key={l.code} value={l.code}>
+                Always reply in {l.nativeName} ({l.name})
+              </option>
+            ))}
+          </select>
+        </div>
+      </Card>
+
+      {/* 2. Text Size Setting */}
       <Card className="border-2 border-stone-300 flex flex-col gap-4">
         <div className="flex items-center gap-2">
           <Type className="w-6 h-6 text-amber-700" />
-          <h2 className="text-2xl font-bold text-stone-900">Text Size</h2>
+          <h2 className="text-2xl font-bold text-stone-900">{t('a11y.textSize')}</h2>
         </div>
         <p className="text-base text-stone-600">
           Choose the text size that feels most comfortable for your eyes.
@@ -96,16 +158,16 @@ export default function SettingsPage() {
         </div>
       </Card>
 
-      {/* High Contrast Mode */}
+      {/* 3. High Contrast Mode */}
       <Card className="border-2 border-stone-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-start gap-3 flex-1">
           <Eye className="w-6 h-6 text-amber-700 shrink-0 mt-1" />
           <div>
             <h2 className="text-2xl font-bold text-stone-900">
-              High Contrast Mode
+              {t('a11y.contrast')}
             </h2>
             <p className="text-base text-stone-600">
-              Increases contrast and uses bold borders to make buttons and text stand out sharply (WCAG AAA compliant).
+              {t('a11y.contrastDesc')}
             </p>
           </div>
         </div>
@@ -114,22 +176,22 @@ export default function SettingsPage() {
           variant={preferences.highContrast ? 'primary' : 'outline'}
           size="default"
           onClick={toggleHighContrast}
-          className="shrink-0"
+          className="shrink-0 font-bold"
         >
           {preferences.highContrast ? 'Enabled ✓' : 'Turn On'}
         </Button>
       </Card>
 
-      {/* Reduced Motion */}
+      {/* 4. Reduced Motion */}
       <Card className="border-2 border-stone-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-start gap-3 flex-1">
           <Activity className="w-6 h-6 text-amber-700 shrink-0 mt-1" />
           <div>
             <h2 className="text-2xl font-bold text-stone-900">
-              Reduce Motion
+              {t('a11y.motion')}
             </h2>
             <p className="text-base text-stone-600">
-              Stops animations and page transitions. Best for users sensitive to screen movements.
+              {t('a11y.motionDesc')}
             </p>
           </div>
         </div>
@@ -138,13 +200,39 @@ export default function SettingsPage() {
           variant={preferences.reducedMotion ? 'primary' : 'outline'}
           size="default"
           onClick={toggleReducedMotion}
-          className="shrink-0"
+          className="shrink-0 font-bold"
         >
           {preferences.reducedMotion ? 'Enabled ✓' : 'Turn On'}
         </Button>
       </Card>
 
-      {/* Explanation Level */}
+      {/* 5. Voice Audio Controls */}
+      {isSpeechSupported && (
+        <Card className="border-2 border-stone-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3 flex-1">
+            <Volume2 className="w-6 h-6 text-amber-700 shrink-0 mt-1" />
+            <div>
+              <h2 className="text-2xl font-bold text-stone-900">
+                {t('a11y.voice')}
+              </h2>
+              <p className="text-base text-stone-600">
+                {t('a11y.voiceDesc')}
+              </p>
+            </div>
+          </div>
+
+          <Button
+            variant={preferences.voiceEnabled ? 'primary' : 'outline'}
+            size="default"
+            onClick={toggleVoiceEnabled}
+            className="shrink-0 font-bold"
+          >
+            {preferences.voiceEnabled ? 'Enabled ✓' : 'Turn On'}
+          </Button>
+        </Card>
+      )}
+
+      {/* 6. Explanation Level */}
       <Card className="border-2 border-stone-300 flex flex-col gap-4">
         <div className="flex items-center gap-2">
           <BookOpen className="w-6 h-6 text-amber-700" />
@@ -184,32 +272,6 @@ export default function SettingsPage() {
           })}
         </div>
       </Card>
-
-      {/* Voice Assistant Reading (Optional Stretch - only shown if speech synthesis exists!) */}
-      {isSpeechSupported && (
-        <Card className="border-2 border-stone-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-start gap-3 flex-1">
-            <Volume2 className="w-6 h-6 text-amber-700 shrink-0 mt-1" />
-            <div>
-              <h2 className="text-2xl font-bold text-stone-900">
-                Voice Audio Controls
-              </h2>
-              <p className="text-base text-stone-600">
-                Web Speech API is available in your browser. You can click the &ldquo;Read aloud&rdquo; button beside answers and steps to hear Saathi read them.
-              </p>
-            </div>
-          </div>
-
-          <Button
-            variant={preferences.voiceEnabled ? 'primary' : 'outline'}
-            size="default"
-            onClick={toggleVoiceEnabled}
-            className="shrink-0"
-          >
-            {preferences.voiceEnabled ? 'Enabled ✓' : 'Turn On'}
-          </Button>
-        </Card>
-      )}
     </div>
   );
 }

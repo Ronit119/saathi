@@ -22,13 +22,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: firstError }, { status: 400 });
     }
 
-    const { guideTitle, stepNumber, stepTitle, stepInstruction, userQuestion } = parseResult.data;
+    const { guideTitle, stepNumber, stepTitle, stepInstruction, userQuestion, responseLanguage } = parseResult.data;
+    const targetLang = responseLanguage || 'en-IN';
+
     const prompt = buildContextHelpPrompt(
       guideTitle,
       stepNumber,
       stepTitle,
       stepInstruction,
-      userQuestion
+      userQuestion,
+      targetLang
     );
 
     const helpResponse = await generateStructuredContent(prompt, ContextHelpResponseSchema);

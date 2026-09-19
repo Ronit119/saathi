@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useLanguage } from '@/i18n/context';
 import { Guide, GuideStep } from '@/types/guide';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -31,6 +32,7 @@ export function StepViewer({
   onStepChange,
   onGuideStatusChange,
 }: StepViewerProps) {
+  const { t } = useLanguage();
   const [isUpdating, setIsUpdating] = useState(false);
   const [helpDialogOpen, setHelpDialogOpen] = useState(false);
   const [initialHelpQuestion, setInitialHelpQuestion] = useState('');
@@ -48,7 +50,7 @@ export function StepViewer({
       await onStepComplete(guide.currentStepIndex);
     } catch (err: unknown) {
       console.error('Failed to complete step:', err);
-      setWriteError('Could not save progress. Please try again.');
+      setWriteError(t('common.errorConnection'));
     } finally {
       setIsUpdating(false);
     }
@@ -62,13 +64,12 @@ export function StepViewer({
         await onStepChange(guide.currentStepIndex - 1);
       } catch (err: unknown) {
         console.error('Failed to change step:', err);
-        setWriteError('Could not change step. Please try again.');
+        setWriteError(t('common.errorConnection'));
       } finally {
         setIsUpdating(false);
       }
     }
   };
-
 
   const openHelp = (defaultPrompt: string) => {
     setInitialHelpQuestion(defaultPrompt);
@@ -82,13 +83,13 @@ export function StepViewer({
           <Award className="w-12 h-12" aria-hidden="true" />
         </div>
         <Badge variant="success" className="mb-3 text-lg px-4 py-1.5">
-          Task Completed!
+          {t('guides.stepViewer.taskCompleted')}
         </Badge>
         <h2 className="text-3xl sm:text-4xl font-black text-stone-900 mb-3">
-          Well Done! You finished this task!
+          {t('guides.stepViewer.congratulations')}
         </h2>
         <p className="text-xl text-stone-700 max-w-xl mb-8">
-          You have successfully completed all steps for <strong>&ldquo;{guide.title}&rdquo;</strong>.
+          {t('guides.allCompleted', { count: guide.steps.length })}: <strong>&ldquo;{guide.title}&rdquo;</strong>.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-4">
@@ -97,14 +98,14 @@ export function StepViewer({
             size="large"
             onClick={() => onStepChange(0)}
           >
-            Review Steps from Beginning
+            {t('guides.stepViewer.reviewBeginning')}
           </Button>
           <Button
             variant="primary"
             size="large"
             onClick={() => onGuideStatusChange('active')}
           >
-            Restart Task
+            {t('guides.stepViewer.restart')}
           </Button>
         </div>
       </Card>
@@ -116,11 +117,11 @@ export function StepViewer({
   }
 
   const stepTextToRead = `
-    Step ${currentStepNumber} of ${totalSteps}.
+    ${t('guides.stepOf', { current: currentStepNumber, total: totalSteps })}.
     ${currentStep.title}.
-    Instruction: ${currentStep.instruction}.
-    Explanation: ${currentStep.explanation}.
-    ${currentStep.tip ? `Tip: ${currentStep.tip}` : ''}
+    ${t('guides.stepViewer.whatToDo')}: ${currentStep.instruction}.
+    ${t('guides.stepViewer.whatYouWillSee')}: ${currentStep.explanation}.
+    ${currentStep.tip ? `${t('guides.stepViewer.helpfulTip')}: ${currentStep.tip}` : ''}
   `;
 
   return (
@@ -131,22 +132,22 @@ export function StepViewer({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <span className="text-sm sm:text-base font-bold text-amber-900 tracking-wide uppercase">
-                Step by step guide
+                {t('guides.stepViewer.stepByStep')}
               </span>
               <h1 className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">
                 {guide.title}
               </h1>
             </div>
             <div className="flex items-center gap-2">
-              <SpeechButton textToRead={stepTextToRead} label="Read step aloud" />
+              <SpeechButton textToRead={stepTextToRead} label={t('guides.stepViewer.readStep')} />
             </div>
           </div>
 
           {/* Progress bar */}
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between text-base font-bold text-stone-700">
-              <span>Step {currentStepNumber} of {totalSteps}</span>
-              <span>{Math.round((currentStepNumber / totalSteps) * 100)}% Completed</span>
+              <span>{t('guides.stepOf', { current: currentStepNumber, total: totalSteps })}</span>
+              <span>{Math.round((currentStepNumber / totalSteps) * 100)}%</span>
             </div>
             <div
               className="w-full h-4 bg-stone-200 rounded-full overflow-hidden"
@@ -181,7 +182,7 @@ export function StepViewer({
         {/* Physical action instruction */}
         <div className="p-5 bg-stone-50 rounded-2xl border-2 border-stone-300">
           <div className="text-sm font-bold text-stone-600 uppercase mb-1">
-            What to do:
+            {t('guides.stepViewer.whatToDo')}
           </div>
           <p className="text-xl sm:text-2xl text-stone-900 font-semibold leading-relaxed">
             {currentStep.instruction}
@@ -192,7 +193,7 @@ export function StepViewer({
         <div className="flex flex-col gap-1.5">
           <div className="text-base font-bold text-stone-700 flex items-center gap-2">
             <Lightbulb className="w-5 h-5 text-amber-700" />
-            <span>What you will see on your screen:</span>
+            <span>{t('guides.stepViewer.whatYouWillSee')}</span>
           </div>
           <p className="text-lg sm:text-xl text-stone-800 leading-relaxed font-normal pl-7">
             {currentStep.explanation}
@@ -204,7 +205,7 @@ export function StepViewer({
           <div className="p-4 bg-sky-50 rounded-xl border border-sky-300 flex items-start gap-3">
             <Sparkles className="w-6 h-6 text-sky-700 shrink-0 mt-0.5" />
             <div>
-              <span className="font-bold text-sky-950 text-base">Helpful Tip: </span>
+              <span className="font-bold text-sky-950 text-base">{t('guides.stepViewer.helpfulTip')} </span>
               <span className="text-sky-950 text-lg">{currentStep.tip}</span>
             </div>
           </div>
@@ -218,7 +219,7 @@ export function StepViewer({
           >
             <span>{writeError}</span>
             <Button variant="outline" size="small" onClick={handleDone}>
-              Retry
+              {t('common.retry')}
             </Button>
           </div>
         )}
@@ -226,24 +227,24 @@ export function StepViewer({
         {/* Contextual Assistance Triggers */}
         <div className="pt-4 border-t border-stone-200 flex flex-col gap-3">
           <span className="text-base font-bold text-stone-700">
-            Need help with this step?
+            {t('guides.stepViewer.needHelp')}
           </span>
           <div className="flex flex-wrap gap-3">
             <Button
               variant="outline"
               size="default"
-              onClick={() => openHelp('What does this step mean?')}
+              onClick={() => openHelp(t('guides.stepViewer.explainStep'))}
               leftIcon={<HelpCircle className="w-5 h-5 text-amber-700" />}
             >
-              Explain this step
+              {t('guides.stepViewer.explainStep')}
             </Button>
             <Button
               variant="outline"
               size="default"
-              onClick={() => openHelp("I can't find this option on my screen.")}
+              onClick={() => openHelp(t('guides.stepViewer.cantFind'))}
               leftIcon={<Search className="w-5 h-5 text-amber-700" />}
             >
-              I can&apos;t find it
+              {t('guides.stepViewer.cantFind')}
             </Button>
           </div>
         </div>
@@ -256,9 +257,9 @@ export function StepViewer({
             onClick={handlePrevious}
             disabled={guide.currentStepIndex === 0 || isUpdating}
             leftIcon={<ArrowLeft className="w-6 h-6" />}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto font-bold"
           >
-            Previous Step
+            {t('guides.stepViewer.previousStep')}
           </Button>
 
           <Button
@@ -276,8 +277,8 @@ export function StepViewer({
             className="w-full sm:w-auto bg-emerald-700 hover:bg-emerald-800 border-emerald-800 text-xl font-bold px-8 py-4"
           >
             {currentStepNumber === totalSteps
-              ? 'Complete Task'
-              : 'Done, Next Step'}
+              ? t('guides.stepViewer.completeTask')
+              : t('guides.stepViewer.nextStep')}
           </Button>
         </div>
       </Card>
@@ -290,6 +291,7 @@ export function StepViewer({
         stepNumber={currentStepNumber}
         stepTitle={currentStep.title}
         stepInstruction={currentStep.instruction}
+        guideLanguage={guide.language}
         initialQuestion={initialHelpQuestion}
       />
     </div>
