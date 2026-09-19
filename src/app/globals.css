@@ -1,0 +1,158 @@
+@import "tailwindcss";
+
+:root {
+  --bg-main: #fcfbf9;
+  --bg-card: #ffffff;
+  --text-main: #1c1917;
+  --text-muted: #57534e;
+  --border-subtle: #e7e5e4;
+  --border-strong: #a8a29e;
+  --primary-accent: #d97706;
+  --primary-hover: #b45309;
+  --primary-bg: #fef3c7;
+  --focus-ring: #b45309;
+
+  /* Font scale: baseline 18px for senior readability */
+  --base-font-size: 18px;
+  --base-line-height: 1.65;
+}
+
+/* Text Size Variations */
+html.text-size-normal {
+  font-size: 18px;
+}
+
+html.text-size-large {
+  font-size: 21px;
+}
+
+html.text-size-xlarge {
+  font-size: 24px;
+}
+
+/* High Contrast Mode (WCAG AAA) */
+html.high-contrast {
+  --bg-main: #000000;
+  --bg-card: #121212;
+  --text-main: #ffffff;
+  --text-muted: #e5e5e5;
+  --border-subtle: #ffffff;
+  --border-strong: #fbbf24;
+  --primary-accent: #fbbf24;
+  --primary-hover: #f59e0b;
+  --primary-bg: #292524;
+  --focus-ring: #fde047;
+}
+
+html.high-contrast body {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+html.high-contrast h1,
+html.high-contrast h2,
+html.high-contrast h3,
+html.high-contrast h4,
+html.high-contrast p,
+html.high-contrast strong,
+html.high-contrast li,
+html.high-contrast label {
+  color: #ffffff !important;
+}
+
+html.high-contrast .text-stone-600,
+html.high-contrast .text-stone-500,
+html.high-contrast .text-stone-700 {
+  color: #e7e5e4 !important;
+}
+
+html.high-contrast .bg-white,
+html.high-contrast .bg-stone-50,
+html.high-contrast .bg-stone-100,
+html.high-contrast .card-theme {
+  background-color: #121212 !important;
+  border-color: #fbbf24 !important;
+  border-width: 2px !important;
+}
+
+html.high-contrast input,
+html.high-contrast textarea,
+html.high-contrast select {
+  background-color: #1c1917 !important;
+  color: #ffffff !important;
+  border-color: #fbbf24 !important;
+  border-width: 2px !important;
+}
+
+html.high-contrast header,
+html.high-contrast nav,
+html.high-contrast footer {
+  background-color: #0c0a09 !important;
+  border-color: #fbbf24 !important;
+}
+
+html.high-contrast button {
+  border-color: #fbbf24 !important;
+  border-width: 2px !important;
+}
+
+/* Reduced Motion Mode */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+html.reduced-motion *,
+html.reduced-motion ::before,
+html.reduced-motion ::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Global Senior Accessibility Typography & Touch Targets */
+body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  font-size: var(--base-font-size);
+  line-height: var(--base-line-height);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Visible Focus Indicator */
+:focus-visible {
+  outline: 3px solid var(--focus-ring) !important;
+  outline-offset: 3px !important;
+}
+
+/* Minimum 48px Touch Targets for Interactive Elements */
+button,
+a,
+input,
+select,
+textarea {
+  min-height: 48px;
+  touch-action: manipulation;
+}
+
+/* Keyboard Skip Link */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 1rem;
+  background: #1c1917;
+  color: #ffffff;
+  padding: 0.75rem 1.5rem;
+  z-index: 9999;
+  font-weight: 700;
+  border-radius: 0.5rem;
+  transition: top 0.2s;
+}
+
+.skip-link:focus {
+  top: 1rem;
+}
