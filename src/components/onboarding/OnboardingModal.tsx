@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/features/auth/context';
 import { useLanguage } from '@/i18n/context';
 import { SUPPORTED_LANGUAGES, SupportedLanguage } from '@/i18n/config';
@@ -8,6 +8,8 @@ import { useAccessibility } from '@/features/accessibility/context';
 import { getUserPreferences, saveUserPreferences } from '@/features/persistence/preferences';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { Portal } from '@/components/ui/Portal';
+import { useBodyScrollLock } from '@/lib/hooks/useBodyScrollLock';
 import { TextSizePreference } from '@/types/user';
 import {
   HeartHandshake,
@@ -44,28 +46,53 @@ export function OnboardingModal() {
     };
   }, [uid, isLoaded]);
 
-  if (!isOpen) return null;
+  useBodyScrollLock(isOpen);
 
-  const handleFinish = async () => {
+  const handleFinish = useCallback(async () => {
     setIsOpen(false);
     if (uid) {
       const current = await getUserPreferences(uid);
       await saveUserPreferences(uid, { ...current, onboardingCompleted: true });
     }
-  };
+  }, [uid]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        void handleFinish();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, handleFinish]);
+
+  if (!isOpen) return null;
 
   const handleSelectLanguage = async (code: SupportedLanguage) => {
     await setUiLocale(code);
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="onboarding-step-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/70 backdrop-blur-xs animate-fadeIn"
-    >
-      <Card className="max-w-xl w-full p-6 sm:p-8 flex flex-col gap-6 shadow-2xl border-2 border-stone-300 relative bg-white max-h-[92vh] overflow-y-auto">
+    <Portal>
+      {/* Backdrop: z-[9998] */}
+      <div
+        className="fixed inset-0 z-[9998] bg-stone-900/70 backdrop-blur-xs transition-opacity duration-200"
+        onClick={handleFinish}
+        aria-hidden="true"
+      />
+
+      {/* Dialog: z-[9999] */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="onboarding-step-title"
+        className="fixed left-1/2 top-1/2 z-[9999] -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-xl max-h-[85dvh] overflow-hidden outline-none animate-fadeIn"
+      >
+        <Card className="max-h-[85dvh] overflow-y-auto p-6 sm:p-8 flex flex-col gap-6 shadow-2xl border-2 border-stone-300 relative bg-white overscroll-contain">
         {/* Step Indicator & Skip */}
         <div className="flex items-center justify-between border-b border-stone-200 pb-3">
           <span className="text-sm font-bold text-amber-900 uppercase tracking-wide">
@@ -244,5 +271,6 @@ export function OnboardingModal() {
         </div>
       </Card>
     </div>
-  );
+  </Portal>
+);
 }

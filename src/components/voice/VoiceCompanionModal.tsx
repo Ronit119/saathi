@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/i18n/context';
 import { SUPPORTED_LANGUAGES, SupportedLanguage } from '@/i18n/config';
@@ -9,6 +9,8 @@ import { useVoiceRecorder } from '@/features/voice/useVoiceRecorder';
 import { useMultilingualTTS } from '@/features/voice/useMultilingualTTS';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Portal } from '@/components/ui/Portal';
+import { useBodyScrollLock } from '@/lib/hooks/useBodyScrollLock';
 import {
   Mic,
   Square,
@@ -51,7 +53,7 @@ export function VoiceCompanionModal({ isOpen, onClose }: VoiceCompanionModalProp
   const [assistantReply, setAssistantReply] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  if (!isOpen) return null;
+  useBodyScrollLock(isOpen);
 
   const handleStartMic = async () => {
     stopTTS();
@@ -183,7 +185,7 @@ export function VoiceCompanionModal({ isOpen, onClose }: VoiceCompanionModalProp
     }
   };
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     cancelRecording();
     stopTTS();
     setStepState('idle');
@@ -191,20 +193,45 @@ export function VoiceCompanionModal({ isOpen, onClose }: VoiceCompanionModalProp
     setAssistantReply(null);
     setErrorMessage(null);
     onClose();
-  };
+  }, [cancelRecording, stopTTS, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        handleCancel();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, handleCancel]);
+
+  if (!isOpen) return null;
 
   const langMeta = SUPPORTED_LANGUAGES[detectedLanguage] || SUPPORTED_LANGUAGES['en-IN'];
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="voice-companion-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-fadeIn"
-    >
-      <Card className="max-w-xl w-full p-6 sm:p-8 flex flex-col gap-6 shadow-xl border-2 border-stone-300 relative bg-white">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-stone-200 pb-4">
+    <Portal>
+      {/* Backdrop: z-[9998] */}
+      <div
+        className="fixed inset-0 z-[9998] bg-stone-900/60 backdrop-blur-xs transition-opacity duration-200"
+        onClick={handleCancel}
+        aria-hidden="true"
+      />
+
+      {/* Dialog: z-[9999] */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="voice-companion-title"
+        className="fixed left-1/2 top-1/2 z-[9999] -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-xl max-h-[85dvh] overflow-hidden outline-none animate-fadeIn"
+      >
+        <Card className="max-h-[85dvh] overflow-y-auto p-6 sm:p-8 flex flex-col gap-6 shadow-2xl border-2 border-stone-300 relative bg-white overscroll-contain">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-stone-200 pb-4 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-amber-600 text-white flex items-center justify-center">
               <Volume2 className="w-6 h-6" aria-hidden="true" />
@@ -389,7 +416,8 @@ export function VoiceCompanionModal({ isOpen, onClose }: VoiceCompanionModalProp
             </Button>
           </div>
         )}
-      </Card>
-    </div>
+        </Card>
+      </div>
+    </Portal>
   );
 }

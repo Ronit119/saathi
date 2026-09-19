@@ -20,7 +20,7 @@ export function Header() {
   const currentLang = SUPPORTED_LANGUAGES[uiLocale] || SUPPORTED_LANGUAGES['en-IN'];
 
   return (
-    <header className="w-full border-b border-stone-200 bg-white shadow-xs sticky top-0 z-30">
+    <header className="w-full border-b border-stone-200 bg-white shadow-xs sticky top-0 z-40">
       <div className="max-w-5xl mx-auto px-4 py-3 sm:py-3.5 flex items-center justify-between gap-3">
         {/* Brand Header */}
         <Link
